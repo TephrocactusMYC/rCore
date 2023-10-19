@@ -882,7 +882,462 @@ fn main() {
 <h3 id="string4rs"><a class="header" href="#string4rs">string4.rs</a></h3>
 <p>这个题需要知道.into()和to_owned()两个内容，这两个可能要查阅一下书籍才可以</p>
 <p>今天做到40题截止。</p>
-<div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="day3"><a class="header" href="#day3">day3</a></h1>
+<p>根据题目显示，今天要做的题要进入包和模块了，那么先把前面的内容收收尾。</p>
+<h2 id="收尾工作"><a class="header" href="#收尾工作">收尾工作</a></h2>
+<h3 id="模式匹配"><a class="header" href="#模式匹配">模式匹配</a></h3>
+<p>match本身也是表达式，可以赋值</p>
+<pre><pre class="playground"><code class="language-rust">enum IpAddr {
+   Ipv4,
+   Ipv6
+}
+
+fn main() {
+    let ip1 = IpAddr::Ipv6;
+    let ip_str = match ip1 {
+        IpAddr::Ipv4 =&gt; &quot;127.0.0.1&quot;,
+        _ =&gt; &quot;::1&quot;,
+    };
+
+    println!(&quot;{}&quot;, ip_str);
+}</code></pre></pre>
+<p>然而，在某些场景下，我们其实只关心某一个值是否存在，此时 match 就显得过于啰嗦。</p>
+<h3 id="iflet"><a class="header" href="#iflet">iflet</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if let Some(3) = v {
+    println!(&quot;three&quot;);
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Rust 标准库中提供了一个非常实用的宏：matches!，它可以将一个表达式跟模式进行匹配，然后返回匹配的结果 true or false。</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let foo = 'f';
+assert!(matches!(foo, 'A'..='Z' | 'a'..='z'));
+
+let bar = Some(4);
+assert!(matches!(bar, Some(x) if x &gt; 2));
+<span class="boring">}</span></code></pre></pre>
+<h3 id="解构option"><a class="header" href="#解构option">解构option</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>enum Option&lt;T&gt; {
+    Some(T),
+    None,
+}
+<span class="boring">}</span></code></pre></pre>
+<p>一个变量要么有值：Some(T), 要么为空：None。</p>
+<p>使用 Option<T>，是为了从 Some 中取出其内部的 T 值以及处理没有值的情况</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn plus_one(x: Option&lt;i32&gt;) -&gt; Option&lt;i32&gt; {
+    match x {
+        None =&gt; None,
+        Some(i) =&gt; Some(i + 1),
+    }
+}
+
+let five = Some(5);
+let six = plus_one(five);
+let none = plus_one(None);
+<span class="boring">}</span></code></pre></pre>
+<h3 id="绑定"><a class="header" href="#绑定">@绑定</a></h3>
+<p>@（读作 at）运算符允许为一个字段绑定另外一个变量。</p>
+<p>下面例子中，我们希望测试 Message::Hello 的 id 字段是否位于 3..=7 范围内，同时也希望能将其值绑定到 id_variable 变量中以便此分支中相关的代码可以使用它。我们可以将 id_variable 命名为 id，与字段同名，不过出于示例的目的这里选择了不同的名称。</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>enum Message {
+    Hello { id: i32 },
+}
+
+let msg = Message::Hello { id: 5 };
+
+match msg {
+    Message::Hello { id: id_variable @ 3..=7 } =&gt; {
+        println!(&quot;Found an id in range: {}&quot;, id_variable)
+    },
+    Message::Hello { id: 10..=12 } =&gt; {
+        println!(&quot;Found an id in another range&quot;)
+    },
+    Message::Hello { id } =&gt; {
+        println!(&quot;Found some other id: {}&quot;, id)
+    },
+}
+<span class="boring">}</span></code></pre></pre>
+<p>上例会打印出 Found an id in range: 5。通过在 3..=7 之前指定 id_variable @，我们捕获了任何匹配此范围的值并同时将该值绑定到变量 id_variable 上。</p>
+<h2 id="包和模块"><a class="header" href="#包和模块">包和模块</a></h2>
+<blockquote>
+<p>这一部分圣经和the book的翻译非常不一样，只能凑合看了</p>
+</blockquote>
+<ul>
+<li>
+<p>项目(Packages)：一个 Cargo 提供的 feature，可以用来构建、测试和分享包</p>
+</li>
+<li>
+<p>包(Crate)：一个由多个模块组成的树形结构，可以作为三方库进行分发，也可以生成可执行文件进行运行</p>
+</li>
+<li>
+<p>模块(Module)：可以一个文件多个模块，也可以一个文件一个模块，模块可以被认为是真实项目中的代码组织单元</p>
+</li>
+<li>
+<p>项目(Package)：可以用来构建、测试和分享包</p>
+</li>
+<li>
+<p>工作空间(WorkSpace)：对于大型项目，可以进一步将多个包联合在一起，组织成工作空间</p>
+</li>
+<li>
+<p>包(Crate)：一个由多个模块组成的树形结构，可以作为三方库进行分发，也可以生成可执行文件进行运行</p>
+</li>
+<li>
+<p>模块(Module)：可以一个文件多个模块，也可以一个文件一个模块，模块可以被认为是真实项目中的代码组织单元</p>
+</li>
+</ul>
+<h4 id="包和-crate"><a class="header" href="#包和-crate">包和 Crate</a></h4>
+<p>crate 是 Rust 在编译时最小的代码单位。如果你用 rustc 而不是 cargo 来编译一个文件（第一章我们这么做过），编译器还是会将那个文件认作一个 crate。crate 可以包含模块，模块可以定义在其他文件，然后和 crate 一起编译</p>
+<p>crate 有两种形式：二进制项和库。二进制项 可以被编译为可执行程序，比如一个命令行程序或者一个服务器。它们必须有一个 main 函数来定义当程序被执行的时候所需要做的事情。目前我们所创建的 crate 都是二进制项。</p>
+<p>库 并没有 main 函数，它们也不会编译为可执行程序，它们提供一些诸如函数之类的东西，使其他项目也能使用这些东西。</p>
+<p>包（package）是提供一系列功能的一个或者多个 crate。一个包会包含一个 Cargo.toml 文件，阐述如何去构建这些 crate。Cargo 就是一个包含构建你代码的二进制项的包。Cargo 也包含这些二进制项所依赖的库。其他项目也能用 Cargo 库来实现与 Cargo 命令行程序一样的逻辑。</p>
+<p>包中可以包含至多一个库 crate(library crate)。包中可以包含任意多个二进制 crate(binary crate)，但是必须至少包含一个 crate（无论是库的还是二进制的）。</p>
+<h4 id="module"><a class="header" href="#module">module</a></h4>
+<p>直接上图
+<img src="https://raw.githubusercontent.com/TephrocactusMYC/pictures/main/imgs/module.png" alt="" /></p>
+<pre><pre class="playground"><code class="language-rust">/*
+backyard
+├── Cargo.lock
+├── Cargo.toml
+└── src
+    ├── garden
+    │   └── vegetables.rs
+    ├── garden.rs
+    └── main.rs
+*/
+use crate::garden::vegetables::Asparagus;
+
+pub mod garden;
+
+fn main() {
+    let plant = Asparagus {};
+    println!(&quot;I'm growing {:?}!&quot;, plant);
+}
+</code></pre></pre>
+<p>接下来就是结构了，需要看教材即可</p>
+<h3 id="其他-1"><a class="header" href="#其他-1">其他</a></h3>
+<p>pub 是可见性
+&gt;模块可见性不代表模块内部项的可见性，模块的可见性仅仅是允许其它模块去引用它，但是想要引用它内部的项，还得继续将对应的项标记为 pub。</p>
+<p>super 代表的是父模块为开始的引用方式，非常类似于文件系统中的 .. 语法：../a/b 文件名：src/lib.rs</p>
+<p>self 其实就是引用自身模块中的项</p>
+<h4 id="结构体和枚举的可见性"><a class="header" href="#结构体和枚举的可见性">结构体和枚举的可见性</a></h4>
+<p>为何要把结构体和枚举的可见性单独拎出来讲呢？因为这两个家伙的成员字段拥有完全不同的可见性：</p>
+<p>将结构体设置为 pub，但它的所有字段依然是私有的
+将枚举设置为 pub，它的所有字段也将对外可见
+原因在于，枚举和结构体的使用方式不一样。如果枚举的成员对外不可见，那该枚举将一点用都没有，因此枚举成员的可见性自动跟枚举可见性保持一致，这样可以简化用户的使用。</p>
+<p>而结构体的应用场景比较复杂，其中的字段也往往部分在 A 处被使用，部分在 B 处被使用，因此无法确定成员的可见性，那索性就设置为全部不可见，将选择权交给程序员。</p>
+<h3 id="use"><a class="header" href="#use">use</a></h3>
+<p>在 Rust 中，可以使用 use 关键字把路径提前引入到当前作用域中，随后的调用就可以省略该路径，极大地简化了代码。</p>
+<h2 id="hashmap"><a class="header" href="#hashmap">hashmap</a></h2>
+<p>就是python里面的字典</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::collections::HashMap;
+
+// 创建一个HashMap，用于存储宝石种类和对应的数量
+let mut my_gems = HashMap::new();
+
+// 将宝石类型和对应的数量写入表中
+my_gems.insert(&quot;红宝石&quot;, 1);
+my_gems.insert(&quot;蓝宝石&quot;, 2);
+my_gems.insert(&quot;河边捡的误以为是宝石的破石头&quot;, 18);
+<span class="boring">}</span></code></pre></pre>
+<pre><pre class="playground"><code class="language-rust">fn main() {
+    use std::collections::HashMap;
+
+    let teams_list = vec![
+        (&quot;中国队&quot;.to_string(), 100),
+        (&quot;美国队&quot;.to_string(), 10),
+        (&quot;日本队&quot;.to_string(), 50),
+    ];
+
+    let teams_map: HashMap&lt;_,_&gt; = teams_list.into_iter().collect();
+
+    println!(&quot;{:?}&quot;,teams_map)
+}</code></pre></pre>
+<p>查询</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from(&quot;Blue&quot;), 10);
+scores.insert(String::from(&quot;Yellow&quot;), 50);
+
+let team_name = String::from(&quot;Blue&quot;);
+let score: Option&lt;&amp;i32&gt; = scores.get(&amp;team_name);
+<span class="boring">}</span></code></pre></pre>
+<p>更新</p>
+<pre><pre class="playground"><code class="language-rust">fn main() {
+    use std::collections::HashMap;
+
+    let mut scores = HashMap::new();
+
+    scores.insert(&quot;Blue&quot;, 10);
+
+    // 覆盖已有的值
+    let old = scores.insert(&quot;Blue&quot;, 20);
+    assert_eq!(old, Some(10));
+
+    // 查询新插入的值
+    let new = scores.get(&quot;Blue&quot;);
+    assert_eq!(new, Some(&amp;20));
+
+    // 查询Yellow对应的值，若不存在则插入新值
+    let v = scores.entry(&quot;Yellow&quot;).or_insert(5);
+    assert_eq!(*v, 5); // 不存在，插入5
+
+    // 查询Yellow对应的值，若不存在则插入新值
+    let v = scores.entry(&quot;Yellow&quot;).or_insert(50);
+    assert_eq!(*v, 5); // 已经存在，因此50没有插入
+}</code></pre></pre>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::collections::HashMap;
+
+let text = &quot;hello world wonderful world&quot;;
+
+let mut map = HashMap::new();
+// 根据空格来切分字符串(英文单词都是通过空格切分)
+for word in text.split_whitespace() {
+    let count = map.entry(word).or_insert(0);
+    *count += 1;
+}
+
+println!(&quot;{:?}&quot;, map);
+<span class="boring">}</span></code></pre></pre>
+<h2 id="做题-2"><a class="header" href="#做题-2">做题</a></h2>
+<p>今天停止到50题</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="day4"><a class="header" href="#day4">day4</a></h1>
+<p>逐渐进入深水区了。</p>
+<p>后面要学的内容大约为错误处理、泛型、生命周期、迭代器、智能指针。预计这部分内容在两天内搞定。</p>
+<h2 id="错误处理"><a class="header" href="#错误处理">错误处理</a></h2>
+<p>Rust 有 panic!宏。在实践中有两种方法造成 panic：执行会造成代码 panic 的操作（比如访问超过数组结尾的内容）或者显式调用 panic! 宏。这两种情况都会使程序 panic。通常情况下这些 panic 会打印出一个错误信息，展开并清理栈数据，然后退出。</p>
+<p>result</p>
+<pre><pre class="playground"><code class="language-rust">use std::fs::File;
+
+fn main() {
+    let greeting_file_result = File::open(&quot;hello.txt&quot;);
+
+    let greeting_file = match greeting_file_result {
+        Ok(file) =&gt; file,
+        Err(error) =&gt; panic!(&quot;Problem opening the file: {:?}&quot;, error),
+    };
+}</code></pre></pre>
+<p>Error是有类型的，具体可以看底下的代码。</p>
+<pre><pre class="playground"><code class="language-rust">use std::fs::File;
+use std::io::ErrorKind;
+
+fn main() {
+    let greeting_file_result = File::open(&quot;hello.txt&quot;);
+
+    let greeting_file = match greeting_file_result {
+        Ok(file) =&gt; file,
+        Err(error) =&gt; match error.kind() {
+            ErrorKind::NotFound =&gt; match File::create(&quot;hello.txt&quot;) {
+                Ok(fc) =&gt; fc,
+                Err(e) =&gt; panic!(&quot;Problem creating the file: {:?}&quot;, e),
+            },
+            other_error =&gt; {
+                panic!(&quot;Problem opening the file: {:?}&quot;, other_error);
+            }
+        },
+    };
+}</code></pre></pre>
+<h3 id="失败时-panic-的简写unwrap-和-expect"><a class="header" href="#失败时-panic-的简写unwrap-和-expect">失败时 panic 的简写：unwrap 和 expect</a></h3>
+<pre><pre class="playground"><code class="language-rust">use std::fs::File;
+
+fn main() {
+    let greeting_file = File::open(&quot;hello.txt&quot;).unwrap();
+}</code></pre></pre>
+<p>还有一些其他的为了赶进度先跳了。</p>
+<h2 id="泛型"><a class="header" href="#泛型">泛型</a></h2>
+<p>如果学过C++的话，这玩意儿就是类模板</p>
+<pre><pre class="playground"><code class="language-rust">struct Point&lt;T&gt; {
+    x: T,
+    y: T,
+}
+
+fn main() {
+    let integer = Point { x: 5, y: 10 };
+    let float = Point { x: 1.0, y: 4.0 };
+}</code></pre></pre>
+<p>上面的代码x和y必须是同一种类型，下面的就可以不同了</p>
+<pre><pre class="playground"><code class="language-rust">struct Point&lt;T, U&gt; {
+    x: T,
+    y: U,
+}
+
+fn main() {
+    let both_integer = Point { x: 5, y: 10 };
+    let both_float = Point { x: 1.0, y: 4.0 };
+    let integer_and_float = Point { x: 5, y: 4.0 };
+}</code></pre></pre>
+<p>枚举泛型</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>enum Option&lt;T&gt; {
+    Some(T),
+    None,
+}
+enum Result&lt;T, E&gt; {
+    Ok(T),
+    Err(E),
+}
+
+<span class="boring">}</span></code></pre></pre>
+<h2 id="特征"><a class="header" href="#特征">特征</a></h2>
+<p>特征定义了一组可以被共享的行为，只要实现了特征，你就能使用这组行为。</p>
+<blockquote>
+<p>注意：trait 类似于其他语言中的常被称为 接口（interfaces）的功能，虽然有一些不同</p>
+</blockquote>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub trait Summary {
+    fn summarize_author(&amp;self) -&gt; String;
+
+    fn summarize(&amp;self) -&gt; String {
+        format!(&quot;(Read more from {}...)&quot;, self.summarize_author())
+    }
+}
+
+pub struct Tweet {
+    pub username: String,
+    pub content: String,
+    pub reply: bool,
+    pub retweet: bool,
+}
+
+impl Summary for Tweet {
+    fn summarize_author(&amp;self) -&gt; String {
+        format!(&quot;@{}&quot;, self.username)
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h4 id="trait-bound-语法"><a class="header" href="#trait-bound-语法">Trait Bound 语法</a></h4>
+<p>impl Trait 语法适用于直观的例子，它实际上是一种较长形式语法的语法糖。我们称为 trait bound，它看起来像：</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn notify&lt;T: Summary&gt;(item: &amp;T) {
+    println!(&quot;Breaking news! {}&quot;, item.summarize());
+}
+<span class="boring">}</span></code></pre></pre>
+<p>这块儿内容挺多的，要看教材</p>
+<h2 id="生命周期"><a class="header" href="#生命周期">生命周期</a></h2>
+<p>Rust 中的每一个引用都有其 生命周期（lifetime），也就是引用保持有效的作用域。大部分时候生命周期是隐含并可以推断的，正如大部分时候类型也是可以推断的一样。类似于当因为有多种可能类型的时候必须注明类型，也会出现引用的生命周期以一些不同方式相关联的情况，所以 Rust 需要我们使用泛型生命周期参数来注明它们的关系，这样就能确保运行时实际使用的引用绝对是有效的。</p>
+<p>生命周期的主要目标是避免悬垂引用（dangling references）</p>
+<p>我们有一个没有生命周期参数的 i32 的引用，一个有叫做 ’a 的生命周期参数的 i32 的引用，和一个生命周期也是 ’a 的 i32 的可变引用：</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>&amp;i32        // 引用
+&amp;'a i32     // 带有显式生命周期的引用
+&amp;'a mut i32 // 带有显式生命周期的可变引用
+<span class="boring">}</span></code></pre></pre>
+<p>为了在函数签名中使用生命周期注解，需要在函数名和参数列表间的尖括号中声明泛型生命周期（lifetime）参数，就像泛型类型（type）参数一样。</p>
+<p>我们希望函数签名表达如下限制：也就是这两个参数和返回的引用存活的一样久。（两个）参数和返回的引用的生命周期是相关的。就像示例 10-21 中在每个引用中都加上了 ’a 那样。</p>
+<pre><pre class="playground"><code class="language-rust">fn main() {
+    let string1 = String::from(&quot;abcd&quot;);
+    let string2 = &quot;xyz&quot;;
+
+    let result = longest(string1.as_str(), string2);
+    println!(&quot;The longest string is {}&quot;, result);
+}
+
+fn longest&lt;'a&gt;(x: &amp;'a str, y: &amp;'a str) -&gt; &amp;'a str {
+    if x.len() &gt; y.len() {
+        x
+    } else {
+        y
+    }
+}</code></pre></pre>
+<p>还有一些其他的，需要看书</p>
+<h2 id="测试"><a class="header" href="#测试">测试</a></h2>
+<p>上面的内容真的挺多的，不过打算过些日子再回过头来看了。</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        let result = 2 + 2;
+        assert_eq!(result, 4);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>现在让我们暂时忽略 tests 模块和 #[cfg(test)] 注解并只关注函数本身。注意 fn 行之前的 #[test]：这个属性表明这是一个测试函数，这样测试执行者就知道将其作为测试处理。tests 模块中也可以有非测试的函数来帮助我们建立通用场景或进行常见操作，必须每次都标明哪些函数是测试。</p>
+<p>示例函数体通过使用 assert_eq! 宏来断言 2 加 2 等于 4。一个典型的测试的格式，就是像这个例子中的断言一样。接下来运行就可以看到测试通过。</p>
+<p>assert! 宏由标准库提供，在希望确保测试中一些条件为 true 时非常有用。需要向 assert! 宏提供一个求值为布尔值的参数。如果值是 true，assert! 什么也不做，同时测试会通过。如果值为 false，assert! 调用 panic! 宏，这会导致测试失败。assert! 宏帮助我们检查代码是否以期望的方式运行。</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    fn can_hold(&amp;self, other: &amp;Rectangle) -&gt; bool {
+        self.width &gt; other.width &amp;&amp; self.height &gt; other.height
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn larger_can_hold_smaller() {
+        let larger = Rectangle {
+            width: 8,
+            height: 7,
+        };
+        let smaller = Rectangle {
+            width: 5,
+            height: 1,
+        };
+
+        assert!(larger.can_hold(&amp;smaller));
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>使用 should_panic 检查 panic</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Guess {
+    value: i32,
+}
+
+impl Guess {
+    pub fn new(value: i32) -&gt; Guess {
+        if value &lt; 1 || value &gt; 100 {
+            panic!(&quot;Guess value must be between 1 and 100, got {}.&quot;, value);
+        }
+
+        Guess { value }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn greater_than_100() {
+        Guess::new(200);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="做题-3"><a class="header" href="#做题-3">做题</a></h2>
+<p>今天做到了71题停止。感觉这部分知识点很多，以题带着看知识点也许会更好。</p>
+<div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div>
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
